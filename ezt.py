@@ -294,6 +294,14 @@ class Template:
     self.program = self._parse(text_or_reader, base_printer=printer)
 
   def generate(self, fp, data):
+    if hasattr(data, '__getitem__') or callable(getattr(data, 'keys', None)):
+      # a dictionary-like object was passed. convert it to an
+      # attribute-based object.
+      class _data_ob:
+        def __init__(self, d):
+          vars(self).update(d)
+      data = _data_ob(data)
+
     ctx = _context()
     ctx.data = data
     ctx.for_index = { }
@@ -597,8 +605,8 @@ def _get_value((refname, start, rest), ctx):
     ob = list[idx]
   elif ctx.defines.has_key(start):
     ob = ctx.defines[start]
-  elif ctx.data.has_key(start):
-    ob = ctx.data[start]
+  elif hasattr(ctx.data, start):
+    ob = getattr(ctx.data, start)
   else:
     raise UnknownReference(refname)
 

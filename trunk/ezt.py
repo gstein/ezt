@@ -449,7 +449,7 @@ def _prepare_ref(refname, for_names, file_args):
   """refname -> a string containing a dotted identifier. example:"foo.bar.bang"
   for_names -> a list of active for sequences.
 
-  Returns a `value reference', a 3-Tupel made out of (refname, start, rest), 
+  Returns a `value reference', a 3-tuple made out of (refname, start, rest), 
   for fast access later.
   """
   # is the reference a string constant?
@@ -484,15 +484,12 @@ def _prepare_ref(refname, for_names, file_args):
           return start, start, [ ]
         refname = start + '.' + string.join(rest, '.')
 
-  if start in for_names:
-    while rest:
-      # check if the next part is also a "for name"
-      name = start + '.' + rest[0]
+  if for_names:
+    # From last to first part, check if this reference is part of a for loop
+    for i in range(len(parts), 0, -1):
+      name = string.join(parts[:i], '.')
       if name in for_names:
-        start = name
-        del rest[0]
-      else:
-        break
+        return refname, name, parts[i:]
 
   return refname, start, rest
 

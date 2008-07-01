@@ -1,0 +1,12 @@
+#summary TODO items for the EZT project
+
+
+Basic changes:
+ * update the header and stuff for current contact info
+ * note the (new) official location,
+ * to move all the docco from the docstring to the wiki
+
+In the [http://www.viewvc.org/ ViewVC] repository, there are a number of local changes:
+ * allow iterables instead of (just) sequences
+ * integrating the callback stuff is gonna be tricky because gstein wants to ponder them
+  * the {{{[CALLBACK ARG1 ARG2]}}} form is a generic function-callback mechanism that kind of goes against EZT's ideals

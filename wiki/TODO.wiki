@@ -1,4 +1,5 @@
 #summary TODO items for the EZT project
+#labels Featured
 
 
 Basic changes:

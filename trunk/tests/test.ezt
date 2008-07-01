@@ -7,3 +7,5 @@
   Some raw text defined into 'newvar' using the "define" syntax.
 [end]
 Using the "[[]define]" syntax here: [newvar]
+
+["nonseq.attr=%0 string=%1 nonseq.attr=%0 (again)" nonseq.attr "hi"]

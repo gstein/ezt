@@ -185,7 +185,10 @@ Directives
 
    The [format ...] directive creates a block in which any substitutions
    are processed as though the template has been instantiated with the
-   the corresponding 'base_format' argument.
+   the corresponding 'base_format' argument. Comma-separated format
+   specifiers perform nested encodings. In this case the encodings are
+   applied left-to-right.  For example the directive: [format "html,js"]
+   will HTML and then Javascript encode any inserted template variables.
 
 """
 #
@@ -223,7 +226,6 @@ import string
 import re
 from types import StringType, IntType, FloatType, LongType
 import os
-import cgi
 try:
   import cStringIO
 except ImportError:
@@ -276,13 +278,6 @@ _re_subst = re.compile('%(%|[0-9]+)')
 
 class Template:
 
-  _printers = {
-    FORMAT_RAW  : '_cmd_print',
-    FORMAT_HTML : '_cmd_print_html',
-    FORMAT_XML  : '_cmd_print_xml',
-    FORMAT_JS   : '_cmd_print_js',
-    }
-
   def __init__(self, fname=None, compress_whitespace=1,
                base_format=FORMAT_RAW):
     self.compress_whitespace = compress_whitespace
@@ -305,8 +300,8 @@ class Template:
       # assume the argument is a plain text string
       text_or_reader = _TextReader(text_or_reader)
 
-    printer = getattr(self, self._printers[base_format])
-    self.program = self._parse(text_or_reader, base_printer=printer)
+    self.program = self._parse(text_or_reader,
+                               base_printer=_parse_format(base_format))
 
   def generate(self, fp, data):
     if hasattr(data, '__getitem__') or callable(getattr(data, 'keys', None)):
@@ -341,10 +336,9 @@ class Template:
     if not for_names:
       for_names = [ ]
 
-    if base_printer:
+    if base_printer is None:
+      base_printer = ()
       printers = [ base_printer ]
-    else:
-      printers = [ self._cmd_print ]
 
     for i in range(len(parts)):
       piece = parts[i]
@@ -402,10 +396,7 @@ class Template:
           elif cmd == 'format':
             if args[1][0]:
               raise BadFormatConstantError(str(args[1:]))
-            funcname = self._printers.get(args[1][1])
-            if not funcname:
-              raise UnknownFormatConstantError(str(args[1:]))
-            printers.append(getattr(self, funcname))
+            printers.append(_parse_format(args[1][1]))
 
           # remember the cmd, current pos, args, and a section placeholder
           stack.append([cmd, len(program), args[1:], None])
@@ -433,7 +424,7 @@ class Template:
               cmd = self._cmd_include
             program.append((cmd,
                             (_prepare_ref(args[1], for_names, file_args),
-                             reader)))
+                             reader, printers[-1])))
         elif cmd == 'if-any':
           f_args = [ ]
           for arg in args[1:]:
@@ -448,8 +439,8 @@ class Template:
             ### this should obey the current format...
             program.append((self._cmd_subst, (f_args[0], f_args[1:])))
           else:
-            program.append((printers[-1],
-                            _prepare_ref(args[0], for_names, file_args)))
+            valref = _prepare_ref(args[0], for_names, file_args)
+            program.append((self._cmd_print, (printers[-1], valref)))
 
     if stack:
       ### would be nice to say which blocks...
@@ -467,18 +458,22 @@ class Template:
       else:
         step[0](step[1], fp, ctx)
 
-  def _cmd_print(self, valref, fp, ctx):
-    _write_value(fp.write, valref, ctx)
+  def _cmd_print(self, (transforms, valref), fp, ctx):
+    value = _get_value(valref, ctx)
+    # if the value has a 'read' attribute, then it is a stream: copy it
+    if hasattr(value, 'read'):
+      while 1:
+        chunk = value.read(16384)
+        if not chunk:
+          break
+        for t in transforms:
+          chunk = t(chunk)
+        fp.write(chunk)
+    else:
+      for t in transforms:
+        value = t(value)
+      fp.write(value)
 
-  def _cmd_print_html(self, valref, fp, ctx):
-    _write_value(lambda s, w=fp.write: w(_html_escape(s)), valref, ctx)
-
-  def _cmd_print_xml(self, valref, fp, ctx):
-    ### use the same quoting as HTML for now
-    self._cmd_print_html(valref, fp, ctx)
-
-  def _cmd_print_js(self, valref, fp, ctx):
-    _write_value(lambda s, w=fp.write: w(_js_escape(s)), valref, ctx)
 
   def _cmd_subst(self, (valref, args), fp, ctx):
     fmt = _get_value(valref, ctx)
@@ -493,14 +488,14 @@ class Template:
           piece = '<undef>'
       fp.write(piece)
 
-  def _cmd_include(self, (valref, reader), fp, ctx):
+  def _cmd_include(self, (valref, reader, printer), fp, ctx):
     fname = _get_value(valref, ctx)
     ### note: we don't have the set of for_names to pass into this parse.
-    ### I don't think there is anything to do but document it. we also
-    ### don't have a current format (since that is a compile-time concept).
-    self._execute(self._parse(reader.read_other(fname)), fp, ctx)
+    ### I don't think there is anything to do but document it
+    self._execute(self._parse(reader.read_other(fname), base_printer=printer),
+                  fp, ctx)
 
-  def _cmd_insertfile(self, (valref, reader), fp, ctx):
+  def _cmd_insertfile(self, (valref, reader, printer), fp, ctx):
     fname = _get_value(valref, ctx)
     fp.write(reader.read_other(fname).text)
 
@@ -659,19 +654,6 @@ def _get_value((refname, start, rest), ctx):
   # string or a sequence
   return ob
 
-def _write_value(func, valref, ctx):
-  value = _get_value(valref, ctx)
-
-  # if the value has a 'read' attribute, then it is a stream: copy it
-  if hasattr(value, 'read'):
-    while 1:
-      chunk = value.read(16384)
-      if not chunk:
-        break
-      func(chunk)
-  else:
-    func(value)
-
 def _replace(s, replace_map):
   for orig, repl in replace_map:
     s = s.replace(orig, repl)
@@ -705,6 +687,23 @@ def _js_escape(s):
 def _html_escape(s):
   return _replace(s, REPLACE_HTML_MAP)
 
+FORMATTERS = {
+  FORMAT_RAW: None,
+  FORMAT_HTML: _html_escape,
+  FORMAT_XML: _html_escape,   ### use the same quoting as HTML for now
+  FORMAT_JS: _js_escape,
+}
+
+def _parse_format(format_string=FORMAT_RAW):
+  format_funcs = []
+  try:
+    for fspec in format_string.split(','):
+      format_func = FORMATTERS[fspec]
+      if format_func is not None:
+        format_funcs.append(format_func)
+  except KeyError:
+    raise UnknownFormatConstantError(format_string)
+  return format_funcs
 
 class _context:
   """A container for the execution context"""

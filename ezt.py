@@ -484,14 +484,15 @@ def _prepare_ref(refname, for_names, file_args):
           return start, start, [ ]
         refname = start + '.' + string.join(rest, '.')
 
-  while rest and (start in for_names):
-    # check if the next part is also a "for name"
-    name = start + '.' + rest[0]
-    if name in for_names:
-      start = name
-      del rest[0]
-    else:
-      break
+  if start in for_names:
+    while rest:
+      # check if the next part is also a "for name"
+      name = start + '.' + rest[0]
+      if name in for_names:
+        start = name
+        del rest[0]
+      else:
+        break
 
   return refname, start, rest
 

@@ -135,7 +135,7 @@ Directives
  
 """
 #
-# Copyright (C) 2001-2002 Greg Stein. All Rights Reserved.
+# Copyright (C) 2001-2003 Greg Stein. All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without 
 # modification, are permitted provided that the following conditions are 
@@ -162,9 +162,7 @@ Directives
 #
 #
 # This software is maintained by Greg and is available at:
-#    http://viewcvs.sourceforge.net/
-# it is also used by the following projects:
-#    http://edna.sourceforge.net/
+#    http://svn.webdav.org/repos/projects/ezt/trunk/
 #
 
 import string

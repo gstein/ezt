@@ -210,12 +210,19 @@ import string
 import re
 from types import StringType, IntType, FloatType
 import os
+import cgi
 try:
   import cStringIO
 except ImportError:
   import StringIO
   cStringIO = StringIO
 
+#
+# Formatting types
+#
+FORMAT_RAW = 'raw'
+FORMAT_HTML = 'html'
+FORMAT_XML = 'xml'
 
 #
 # This regular expression matches three alternatives:
@@ -238,7 +245,7 @@ _re_parse = re.compile(r'\[(%s(?: +%s)*)\]|(\[\[\])|\[#[^\]]*\]' % (_item, _item
 _re_args = re.compile(r'"(?:[^\\"]|\\.)*"|[-\w.]+')
 
 # block commands and their argument counts
-_block_cmd_specs = { 'if-index':2, 'for':1, 'is':2, 'define':1 }
+_block_cmd_specs = { 'if-index':2, 'for':1, 'is':2, 'define':1, 'format':1 }
 _block_cmds = _block_cmd_specs.keys()
 
 # two regular expresssions for compressing whitespace. the first is used to
@@ -255,26 +262,36 @@ _re_subst = re.compile('%(%|[0-9]+)')
 
 class Template:
 
-  def __init__(self, fname=None, compress_whitespace=1):
+  _printers = {
+    FORMAT_RAW  : '_cmd_print',
+    FORMAT_HTML : '_cmd_print_html',
+    FORMAT_XML  : '_cmd_print_xml',
+    }
+
+  def __init__(self, fname=None, compress_whitespace=1,
+               base_format=FORMAT_RAW):
     self.compress_whitespace = compress_whitespace
     if fname:
-      self.parse_file(fname)
+      self.parse_file(fname, base_format)
 
-  def parse_file(self, fname):
+  def parse_file(self, fname, base_format=FORMAT_RAW):
     "fname -> a string object with pathname of file containg an EZT template."
 
-    self.program = self._parse(_FileReader(fname))
+    self.parse(_FileReader(fname), base_format)
 
-  def parse(self, text_or_reader):
+  def parse(self, text_or_reader, base_format=FORMAT_RAW):
     """Parse the template specified by text_or_reader.
 
     The argument should be a string containing the template, or it should
-    specify a subclass of ezt.Reader which can read templates.
+    specify a subclass of ezt.Reader which can read templates. The base
+    format for printing values is given by base_format.
     """
     if not isinstance(text_or_reader, Reader):
       # assume the argument is a plain text string
       text_or_reader = _TextReader(text_or_reader)
-    self.program = self._parse(text_or_reader)
+
+    printer = getattr(self, self._printers[base_format])
+    self.program = self._parse(text_or_reader, base_printer=printer)
 
   def generate(self, fp, data):
     ctx = _context()
@@ -283,7 +300,7 @@ class Template:
     ctx.defines = { }
     self._execute(self.program, fp, ctx)
 
-  def _parse(self, reader, for_names=None, file_args=()):
+  def _parse(self, reader, for_names=None, file_args=(), base_printer=None):
     """text -> string object containing the template.
 
     This is a private helper function doing the real work for method parse.
@@ -299,7 +316,12 @@ class Template:
     program = [ ]
     stack = [ ]
     if not for_names:
-       for_names = [ ]
+      for_names = [ ]
+
+    if base_printer:
+      printers = [ base_printer ]
+    else:
+      printers = [ self._cmd_print ]
 
     for i in range(len(parts)):
       piece = parts[i]
@@ -335,10 +357,13 @@ class Template:
           except IndexError:
             raise UnmatchedEndError()
           else_section = program[idx:]
-          func = getattr(self, '_cmd_' + re.sub('-', '_', cmd))
-          program[idx:] = [ (func, (args, true_section, else_section)) ]
-          if cmd == 'for':
-            for_names.pop()
+          if cmd == 'format':
+            printers.pop()
+          else:
+            func = getattr(self, '_cmd_' + re.sub('-', '_', cmd))
+            program[idx:] = [ (func, (args, true_section, else_section)) ]
+            if cmd == 'for':
+              for_names.pop()
         elif cmd in _block_cmds:
           if len(args) > _block_cmd_specs[cmd] + 1:
             raise ArgCountSyntaxError(str(args[1:]))
@@ -351,6 +376,13 @@ class Template:
             args[2] = _prepare_ref(args[2], for_names, file_args)
           elif cmd == 'for':
             for_names.append(args[1][0])  # append the refname
+          elif cmd == 'format':
+            if args[1][0]:
+              raise BadFormatConstantError(str(args[1:]))
+            funcname = self._printers.get(args[1][1])
+            if not funcname:
+              raise UnknownFormatConstantError(str(args[1:]))
+            printers.append(getattr(self, funcname))
 
           # remember the cmd, current pos, args, and a section placeholder
           stack.append([cmd, len(program), args[1:], None])
@@ -361,8 +393,7 @@ class Template:
             for arg in args[2:]:
               f_args.append(_prepare_ref(arg, for_names, file_args))
             program.extend(self._parse(reader.read_other(include_filename),
-                                       for_names,
-                                       f_args))
+                                       for_names, f_args, printers[-1]))
           else:
             if len(args) != 2:
               raise ArgCountSyntaxError(str(args))
@@ -380,9 +411,10 @@ class Template:
             f_args = [ ]
             for arg in args:
               f_args.append(_prepare_ref(arg, for_names, file_args))
+            ### this should obey the current format...
             program.append((self._cmd_subst, (f_args[0], f_args[1:])))
           else:
-            program.append((self._cmd_print,
+            program.append((printers[-1],
                             _prepare_ref(args[0], for_names, file_args)))
 
     if stack:
@@ -402,17 +434,14 @@ class Template:
         step[0](step[1], fp, ctx)
 
   def _cmd_print(self, valref, fp, ctx):
-    value = _get_value(valref, ctx)
+    _write_value(fp.write, valref, ctx)
 
-    # if the value has a 'read' attribute, then it is a stream: copy it
-    if hasattr(value, 'read'):
-      while 1:
-        chunk = value.read(16384)
-        if not chunk:
-          break
-        fp.write(chunk)
-    else:
-      fp.write(value)
+  def _cmd_print_html(self, valref, fp, ctx):
+    _write_value(lambda s, w=fp.write: w(cgi.escape(s)), valref, ctx)
+
+  def _cmd_print_xml(self, valref, fp, ctx):
+    ### use the same quoting as HTML for now
+    self._cmd_print_html(valref, fp, ctx)
 
   def _cmd_subst(self, (valref, args), fp, ctx):
     fmt = _get_value(valref, ctx)
@@ -430,7 +459,8 @@ class Template:
   def _cmd_include(self, (valref, reader), fp, ctx):
     fname = _get_value(valref, ctx)
     ### note: we don't have the set of for_names to pass into this parse.
-    ### I don't think there is anything to do but document it.
+    ### I don't think there is anything to do but document it. we also
+    ### don't have a current format (since that is a compile-time concept).
     self._execute(self._parse(reader.read_other(fname)), fp, ctx)
 
   def _cmd_if_any(self, args, fp, ctx):
@@ -486,6 +516,7 @@ class Template:
       self._execute(section, fp, ctx)
       idx[1] = idx[1] + 1
     del ctx.for_index[refname]
+
   def _cmd_define(self, args, fp, ctx):
     ((name,), unused, section) = args
     valfp = cStringIO.StringIO()
@@ -587,6 +618,19 @@ def _get_value((refname, start, rest), ctx):
   # string or a sequence
   return ob
 
+def _write_value(func, valref, ctx):
+  value = _get_value(valref, ctx)
+
+  # if the value has a 'read' attribute, then it is a stream: copy it
+  if hasattr(value, 'read'):
+    while 1:
+      chunk = value.read(16384)
+      if not chunk:
+        break
+      func(chunk)
+  else:
+    func(value)
+
 
 class _context:
   """A container for the execution context"""
@@ -631,6 +675,12 @@ class UnmatchedEndError(EZTException):
 
 class BaseUnavailableError(EZTException):
   """Base location is unavailable, which disables includes."""
+
+class BadFormatConstantError(EZTException):
+  """Format specifiers must be string constants."""
+
+class UnknownFormatConstantError(EZTException):
+  """The format specifier is an unknown value."""
 
 
 # --- standard test environment ---

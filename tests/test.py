@@ -17,6 +17,9 @@ seqitem = _item()
 seqitem.attr = 'seqitem.attr'
 nonseq.seq = [ seqitem, seqitem ]
 
-data = { 'nonseq' : nonseq }
+data = {
+  'nonseq' : nonseq,
+  'sensitive' : '<cool & stuff>',
+  }
 
 t.generate(sys.stdout, data)

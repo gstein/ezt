@@ -125,6 +125,13 @@ Directives
    inline. In the variable form, the target file is compiled and executed
    at runtime.
 
+   [insertfile "filename"] or [insertfile QUAL_NAME]
+
+   This directive is replace by content from the named file, but as a
+   literal string: directives in the target file are not expanded.  As
+   in the case of the "include" directive, using a string constant for
+   the filename is more efficient than the variable form.
+
  Block directives
  ----------------
 
@@ -394,9 +401,16 @@ class Template:
 
           # remember the cmd, current pos, args, and a section placeholder
           stack.append([cmd, len(program), args[1:], None])
-        elif cmd == 'include':
+        elif cmd == 'include' or cmd == 'insertfile':
+          is_insertfile = (cmd == 'insertfile')
+          # extra arguments are meaningless when using insertfile
+          if is_insertfile and len(args) != 2:
+            raise ArgCountSyntaxError(str(args))
           if args[1][0] == '"':
             include_filename = args[1][1:-1]
+            if is_insertfile:
+              program.append(reader.read_other(include_filename).text)
+            else:
             f_args = [ ]
             for arg in args[2:]:
               f_args.append(_prepare_ref(arg, for_names, file_args))
@@ -405,7 +419,11 @@ class Template:
           else:
             if len(args) != 2:
               raise ArgCountSyntaxError(str(args))
-            program.append((self._cmd_include,
+            if is_insertfile:
+              cmd = self._cmd_insertfile
+            else:
+              cmd = self._cmd_include
+            program.append((cmd,
                             (_prepare_ref(args[1], for_names, file_args),
                              reader)))
         elif cmd == 'if-any':
@@ -470,6 +488,10 @@ class Template:
     ### I don't think there is anything to do but document it. we also
     ### don't have a current format (since that is a compile-time concept).
     self._execute(self._parse(reader.read_other(fname)), fp, ctx)
+
+  def _cmd_insertfile(self, (valref, reader), fp, ctx):
+    fname = _get_value(valref, ctx)
+    fp.write(reader.read_other(fname).text)
 
   def _cmd_if_any(self, args, fp, ctx):
     "If any value is a non-empty string or non-empty list, then T else F."

@@ -2,3 +2,8 @@
 [for nonseq.seq]
   [nonseq.seq.attr]
 [end]
+
+[define newvar]
+  Some raw text defined into 'newvar' using the "define" syntax.
+[end]
+Using the "[[]define]" syntax here: [newvar]

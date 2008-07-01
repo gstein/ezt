@@ -301,7 +301,7 @@ class Template:
           if cmd == 'is':
             args[2] = _prepare_ref(args[2], for_names, file_args)
           elif cmd == 'for':
-            for_names.append(args[1][0])
+            for_names.append(args[1][0])  # append the refname
 
           # remember the cmd, current pos, args, and a section placeholder
           stack.append([cmd, len(program), args[1:], None])
@@ -456,19 +456,34 @@ def _prepare_ref(refname, for_names, file_args):
   if refname[0] == '"':
     return None, refname[1:-1], None
 
+  parts = string.split(refname, '.')
+  start = parts[0]
+  rest = parts[1:]
+
   # if this is an include-argument, then just return the prepared ref
-  if refname[:3] == 'arg':
+  if start[:3] == 'arg':
     try:
-      idx = int(refname[3:])
+      idx = int(start[3:])
     except ValueError:
       pass
     else:
       if idx < len(file_args):
-        return file_args[idx]
+        orig_refname, start, more_rest = file_args[idx]
+        if more_rest is None:
+          # the include-argument was a string constant
+          return None, start, None
 
-  parts = string.split(refname, '.')
-  start = parts[0]
-  rest = parts[1:]
+        # prepend the argument's "rest" for our further processing
+        rest[:0] = more_rest
+
+        # rewrite the refname to ensure that any potential 'for' processing
+        # has the correct name
+        ### this can make it hard for debugging include files since we lose
+        ### the 'argNNN' names
+        if not rest:
+          return start, start, [ ]
+        refname = start + '.' + string.join(rest, '.')
+
   while rest and (start in for_names):
     # check if the next part is also a "for name"
     name = start + '.' + rest[0]
@@ -477,6 +492,7 @@ def _prepare_ref(refname, for_names, file_args):
       del rest[0]
     else:
       break
+
   return refname, start, rest
 
 def _get_value((refname, start, rest), ctx):
@@ -490,6 +506,8 @@ def _get_value((refname, start, rest), ctx):
   if rest is None:
     # it was a string constant
     return start
+
+  # get the starting object
   if ctx.for_index.has_key(start):
     list, idx = ctx.for_index[start]
     ob = list[idx]

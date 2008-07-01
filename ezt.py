@@ -463,7 +463,7 @@ class Template:
     _write_value(fp.write, valref, ctx)
 
   def _cmd_print_html(self, valref, fp, ctx):
-    _write_value(lambda s, w=fp.write: w(cgi.escape(s)), valref, ctx)
+    _write_value(lambda s, w=fp.write: w(cgi.escape(s, True)), valref, ctx)
 
   def _cmd_print_xml(self, valref, fp, ctx):
     ### use the same quoting as HTML for now

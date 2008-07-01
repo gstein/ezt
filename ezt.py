@@ -340,7 +340,7 @@ class Template:
 
     if base_printer is None:
       base_printer = ()
-      printers = [ base_printer ]
+    printers = [ base_printer ]
 
     for i in range(len(parts)):
       piece = parts[i]
@@ -412,11 +412,11 @@ class Template:
             if is_insertfile:
               program.append(reader.read_other(include_filename).text)
             else:
-            f_args = [ ]
-            for arg in args[2:]:
-              f_args.append(_prepare_ref(arg, for_names, file_args))
-            program.extend(self._parse(reader.read_other(include_filename),
-                                       for_names, f_args, printers[-1]))
+              f_args = [ ]
+              for arg in args[2:]:
+                f_args.append(_prepare_ref(arg, for_names, file_args))
+              program.extend(self._parse(reader.read_other(include_filename),
+                                         for_names, f_args, printers[-1]))
           else:
             if len(args) != 2:
               raise ArgCountSyntaxError(str(args))

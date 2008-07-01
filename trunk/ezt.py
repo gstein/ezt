@@ -436,8 +436,8 @@ class Template:
             f_args = [ ]
             for arg in args:
               f_args.append(_prepare_ref(arg, for_names, file_args))
-            ### this should obey the current format...
-            program.append((self._cmd_subst, (f_args[0], f_args[1:])))
+            program.append((self._cmd_subst,
+                            (printers[-1], f_args[0], f_args[1:])))
           else:
             valref = _prepare_ref(args[0], for_names, file_args)
             program.append((self._cmd_print, (printers[-1], valref)))
@@ -474,8 +474,7 @@ class Template:
         value = t(value)
       fp.write(value)
 
-
-  def _cmd_subst(self, (valref, args), fp, ctx):
+  def _cmd_subst(self, (transforms, valref, args), fp, ctx):
     fmt = _get_value(valref, ctx)
     parts = _re_subst.split(fmt)
     for i in range(len(parts)):
@@ -486,6 +485,8 @@ class Template:
           piece = _get_value(args[idx], ctx)
         else:
           piece = '<undef>'
+      for t in transforms:
+        piece = t(piece)
       fp.write(piece)
 
   def _cmd_include(self, (valref, reader, printer), fp, ctx):

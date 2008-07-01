@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 """ezt.py -- easy templating
 
-ezt templates are very similar to standard HTML files.  But additionaly
-they contain directives sprinkled in between.  With these directives
-it possible to generate the dynamic content from the ezt templates.
+ezt templates are simply text files in whatever format you so desire
+(such as XML, HTML, etc.) which contain directives sprinkled
+throughout.  With these directives it is possible to generate the
+dynamic content from the ezt templates.
 
-These directives are enclosed in square brackets.  If you are a 
-C-programmer, you might be familar with the #ifdef directives of the
-C preprocessor 'cpp'.  ezt provides a similar concept for HTML.  Additionally 
-EZT has a 'for' directive, which allows to iterate (repeat) certain 
+These directives are enclosed in square brackets.  If you are a
+C-programmer, you might be familar with the #ifdef directives of the C
+preprocessor 'cpp'.  ezt provides a similar concept.  Additionally EZT
+has a 'for' directive, which allows it to iterate (repeat) certain
 subsections of the template according to sequence of data items
 provided by the application.
 
-The HTML rendering is performed by the method generate() of the Template
+The final rendering is performed by the method generate() of the Template
 class.  Building template instances can either be done using external
 EZT files (convention: use the suffix .ezt for such files):
 
@@ -100,16 +101,17 @@ Directives
    [for QUAL_NAME] ... [end]
    
    The text within the [for ...] directive and the corresponding [end]
-   is repeated for each element in the sequence referred to by the qualified
-   name in the for directive.  Within the for block this identifiers now 
-   refers to the actual item indexed by this loop iteration.
+   is repeated for each element in the sequence referred to by the
+   qualified name in the for directive.  Within the for block this
+   identifiers now refers to the actual item indexed by this loop
+   iteration.
 
    [if-any QUAL_NAME [QUAL_NAME2 ...]] ... [else] ... [end]
 
-   Test if any QUAL_NAME value is not None or an empty string or list.  
-   The [else] clause is optional.  CAUTION: Numeric values are converted to
-   string, so if QUAL_NAME refers to a numeric value 0, the then-clause is
-   substituted!
+   Test if any QUAL_NAME value is not None or an empty string or list.
+   The [else] clause is optional.  CAUTION: Numeric values are
+   converted to string, so if QUAL_NAME refers to a numeric value 0,
+   the then-clause is substituted!
 
    [if-index INDEX_FROM_FOR odd] ... [else] ... [end]
    [if-index INDEX_FROM_FOR even] ... [else] ... [end]
@@ -117,19 +119,19 @@ Directives
    [if-index INDEX_FROM_FOR last] ... [else] ... [end]
    [if-index INDEX_FROM_FOR NUMBER] ... [else] ... [end]
 
-   These five directives work similar to [if-any], but are only useful 
-   within a [for ...]-block (see above).  The odd/even directives are 
-   for example useful to choose different background colors for adjacent rows 
-   in a table.  Similar the first/last directives might be used to
-   remove certain parts (for example "Diff to previous" doesn't make sense,
-   if there is no previous).
+   These five directives work similar to [if-any], but are only useful
+   within a [for ...]-block (see above).  The odd/even directives are
+   for example useful to choose different background colors for
+   adjacent rows in a table.  Similar the first/last directives might
+   be used to remove certain parts (for example "Diff to previous"
+   doesn't make sense, if there is no previous).
 
    [is QUAL_NAME STRING] ... [else] ... [end]
    [is QUAL_NAME QUAL_NAME] ... [else] ... [end]
 
-   The [is ...] directive is similar to the other conditional directives
-   above.  But it allows to compare two value references or a value reference
-   with some constant string.
+   The [is ...] directive is similar to the other conditional
+   directives above.  But it allows to compare two value references or
+   a value reference with some constant string.
  
 """
 #
@@ -236,7 +238,7 @@ class Template:
     self._execute(self.program, fp, ctx)
 
   def _parse(self, reader, for_names=None, file_args=()):
-    """text -> string object containing the HTML template.
+    """text -> string object containing the template.
 
     This is a private helper function doing the real work for method parse.
     It returns the parsed template as a 'program'.  This program is a sequence

@@ -181,7 +181,7 @@ Directives
    with other mechanisms such as [is ...] or [if-any ...], as long as
    they appear later in the template.
  
-   [format "html|xml|js|raw"] ... [end]
+   [format "html|xml|js|url|raw"] ... [end]
 
    The [format ...] directive creates a block in which any substitutions
    are processed as though the template has been instantiated with the
@@ -226,6 +226,7 @@ import string
 import re
 from types import StringType, IntType, FloatType, LongType
 import os
+import urllib
 try:
   import cStringIO
 except ImportError:
@@ -239,6 +240,7 @@ FORMAT_RAW = 'raw'
 FORMAT_HTML = 'html'
 FORMAT_XML = 'xml'
 FORMAT_JS = 'js'
+FORMAT_URL = 'url'
 
 #
 # This regular expression matches three alternatives:
@@ -688,11 +690,20 @@ def _js_escape(s):
 def _html_escape(s):
   return _replace(s, REPLACE_HTML_MAP)
 
+def _url_escape(s):
+  ### quote_plus barfs on non-ASCII characters. According to
+  ### http://www.w3.org/International/O-URL-code.html URIs should be
+  ### UTF-8 encoded first.
+  if isinstance(s, unicode):
+    s = s.encode('utf8')
+  return urllib.quote_plus(s)
+
 FORMATTERS = {
   FORMAT_RAW: None,
   FORMAT_HTML: _html_escape,
   FORMAT_XML: _html_escape,   ### use the same quoting as HTML for now
   FORMAT_JS: _js_escape,
+  FORMAT_URL: _url_escape,
 }
 
 def _parse_format(format_string=FORMAT_RAW):

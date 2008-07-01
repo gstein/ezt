@@ -81,19 +81,49 @@ Directives
  or attributes of objects contained in the data dictionary given to the 
  .generate() method.
 
+ Qualified names
+ ---------------
+
+   Qualified names have two basic forms: a variable reference, or a string
+   constant. References are a name from the data dictionary with optional
+   dotted attributes (where each intermediary is an object with attributes,
+   of course).
+
+   Examples:
+
+     [varname]
+
+     [ob.attr]
+
+     ["string"]
+
  Simple directives
  -----------------
 
    [QUAL_NAME]
 
-   This directive is simply replaced by the value of identifier from the data 
-   dictionary.  QUAL_NAME might be a dotted qualified name refering to some
-   instance attribute of objects contained in the dats dictionary.
-   Numbers are converted to string though.
+   This directive is simply replaced by the value of the qualified name.
+   Numbers are converted to a string, and None becomes an empty string.
+
+   [QUAL_NAME QUAL_NAME ...]
+
+   The first value defines a substitution format, specifying constant
+   text and indices of the additional arguments. The arguments are then
+   substituted and the resulting is inserted into the output stream.
+
+   Example:
+     ["abc %0 def %1 ghi %0" foo bar.baz]
+
+   Note that the first value can be any type of qualified name -- a string
+   constant or a variable reference. Use %% to substitute a percent sign.
+   Argument indices are 0-based.
 
    [include "filename"]  or [include QUAL_NAME]
 
-   This directive is replaced by content of the named include file.
+   This directive is replaced by content of the named include file. Note
+   that a string constant is more efficient -- the target file is compiled
+   inline. In the variable form, the target file is compiled and executed
+   at runtime.
 
  Block directives
  ----------------
@@ -146,7 +176,7 @@ Directives
  
 """
 #
-# Copyright (C) 2001-2003 Greg Stein. All Rights Reserved.
+# Copyright (C) 2001-2005 Greg Stein. All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without 
 # modification, are permitted provided that the following conditions are 
@@ -350,7 +380,7 @@ class Template:
             f_args = [ ]
             for arg in args:
               f_args.append(_prepare_ref(arg, for_names, file_args))
-            program.append((self._cmd_format, (f_args[0], f_args[1:])))
+            program.append((self._cmd_subst, (f_args[0], f_args[1:])))
           else:
             program.append((self._cmd_print,
                             _prepare_ref(args[0], for_names, file_args)))
@@ -384,7 +414,7 @@ class Template:
     else:
       fp.write(value)
 
-  def _cmd_format(self, (valref, args), fp, ctx):
+  def _cmd_subst(self, (valref, args), fp, ctx):
     fmt = _get_value(valref, ctx)
     parts = _re_subst.split(fmt)
     for i in range(len(parts)):

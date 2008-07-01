@@ -23,3 +23,8 @@ data = {
   }
 
 t.generate(sys.stdout, data)
+
+# do it with an attribute-based object now.
+data2 = _item()
+vars(data2).update(data)
+t.generate(sys.stdout, data2)

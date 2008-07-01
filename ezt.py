@@ -181,6 +181,12 @@ Directives
    with other mechanisms such as [is ...] or [if-any ...], as long as
    they appear later in the template.
  
+   [format "html|xml|js|raw"] ... [end]
+
+   The [format ...] directive creates a block in which any substitutions
+   are processed as though the template has been instantiated with the
+   the corresponding 'base_format' argument.
+
 """
 #
 # Copyright (C) 2001-2005 Greg Stein. All Rights Reserved.
@@ -230,6 +236,7 @@ except ImportError:
 FORMAT_RAW = 'raw'
 FORMAT_HTML = 'html'
 FORMAT_XML = 'xml'
+FORMAT_JS = 'js'
 
 #
 # This regular expression matches three alternatives:
@@ -273,6 +280,7 @@ class Template:
     FORMAT_RAW  : '_cmd_print',
     FORMAT_HTML : '_cmd_print_html',
     FORMAT_XML  : '_cmd_print_xml',
+    FORMAT_JS   : '_cmd_print_js',
     }
 
   def __init__(self, fname=None, compress_whitespace=1,
@@ -463,11 +471,14 @@ class Template:
     _write_value(fp.write, valref, ctx)
 
   def _cmd_print_html(self, valref, fp, ctx):
-    _write_value(lambda s, w=fp.write: w(cgi.escape(s, True)), valref, ctx)
+    _write_value(lambda s, w=fp.write: w(_html_escape(s)), valref, ctx)
 
   def _cmd_print_xml(self, valref, fp, ctx):
     ### use the same quoting as HTML for now
     self._cmd_print_html(valref, fp, ctx)
+
+  def _cmd_print_js(self, valref, fp, ctx):
+    _write_value(lambda s, w=fp.write: w(_js_escape(s)), valref, ctx)
 
   def _cmd_subst(self, (valref, args), fp, ctx):
     fmt = _get_value(valref, ctx)
@@ -660,6 +671,39 @@ def _write_value(func, valref, ctx):
       func(chunk)
   else:
     func(value)
+
+def _replace(s, replace_map):
+  for orig, repl in replace_map:
+    s = s.replace(orig, repl)
+  return s
+
+REPLACE_JS_MAP = (
+  ('\\', r'\\'), ('\t', r'\t'), ('\n', r'\n'), ('\r', r'\r'),
+  ('"', r'\x22'), ('\'', r'\x27'), ('&', r'\x26'),
+  ('<', r'\x3c'), ('>', r'\x3e'), ('=', r'\x3d'),
+)
+
+# Various unicode whitespace
+REPLACE_JS_UNICODE_MAP = (
+  (u'\u0085', r'\u0085'), (u'\u2028', r'\u2028'), (u'\u2029', r'\u2029'),
+)
+
+# Why not cgi.escape? It doesn't do single quotes which are occasionally
+# used to contain HTML attributes and event handler definitions (unfortunately)
+REPLACE_HTML_MAP = (
+  ('&', '&amp;'), ('<', '&lt;'), ('>', '&gt;'),
+  ('"', '&quot;'), ('\'', '&#39;'),
+)
+
+def _js_escape(s):
+  s = _replace(s, REPLACE_JS_MAP)
+  ### perhaps attempt to coerce the string to unicode and then replace?
+  if isinstance(s, unicode):
+    s = _replace(s, REPLACE_JS_UNICODE_MAP)
+  return s
+
+def _html_escape(s):
+  return _replace(s, REPLACE_HTML_MAP)
 
 
 class _context:

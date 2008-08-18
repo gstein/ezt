@@ -11,6 +11,7 @@ In the [http://www.viewvc.org/ ViewVC] repository, there are a number of local c
  * allow iterables instead of (just) sequences
  * integrating the callback stuff is gonna be tricky because gstein wants to ponder them
   * the {{{[CALLBACK ARG1 ARG2]}}} form is a generic function-callback mechanism that kind of goes against EZT's ideals
+ * a slew of [http://viewvc.tigris.org/issues/buglist.cgi?component=viewvc&issue_status=UNCONFIRMED&issue_status=NEW&issue_status=STARTED&issue_status=REOPENED&subcomponent=ezt patches] living in the ViewVC issue tracker, too.  
 
 
 == Larger Questions ==

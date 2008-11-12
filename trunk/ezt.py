@@ -192,7 +192,7 @@ Directives
 
 """
 #
-# Copyright (C) 2001-2005 Greg Stein. All Rights Reserved.
+# Copyright (C) 2001-2008 Greg Stein. All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without 
 # modification, are permitted provided that the following conditions are 
@@ -219,7 +219,7 @@ Directives
 #
 #
 # This software is maintained by Greg and is available at:
-#    http://svn.webdav.org/repos/projects/ezt/trunk/
+#    http://code.google.com/p/ezt/
 #
 
 import string

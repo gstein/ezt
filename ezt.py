@@ -189,10 +189,9 @@ Directives
    specifiers perform nested encodings. In this case the encodings are
    applied left-to-right.  For example the directive: [format "html,js"]
    will HTML and then Javascript encode any inserted template variables.
-
 """
 #
-# Copyright (C) 2001-2008 Greg Stein. All Rights Reserved.
+# Copyright (C) 2001-2009 Greg Stein. All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -222,7 +221,6 @@ Directives
 #    http://code.google.com/p/ezt/
 #
 
-import string
 import re
 from types import StringType, IntType, FloatType, LongType
 import os
@@ -267,7 +265,7 @@ _re_args = re.compile(r'"(?:[^\\"]|\\.)*"|[-\w.]+')
 _block_cmd_specs = { 'if-index':2, 'for':1, 'is':2, 'define':1, 'format':1 }
 _block_cmds = _block_cmd_specs.keys()
 
-# two regular expresssions for compressing whitespace. the first is used to
+# two regular expressions for compressing whitespace. the first is used to
 # compress any whitespace including a newline into a single newline. the
 # second regex is used to compress runs of whitespace into a single space.
 _re_newline = re.compile('[ \t\r\f\v]*\n\\s*')
@@ -555,7 +553,7 @@ class Template:
     ((left_ref, right_ref), t_section, f_section) = args
     right_value = _get_value(right_ref, ctx, filename, line_number)
     left_value = _get_value(left_ref, ctx, filename, line_number)
-    value = string.lower(left_value) == string.lower(right_value)
+    value = left_value.lower() == right_value.lower()
     self._do_if(value, t_section, f_section, fp, ctx)
 
   def _do_if(self, value, t_section, f_section, fp, ctx):
@@ -606,7 +604,7 @@ def _prepare_ref(refname, for_names, file_args):
   if refname[0] == '"':
     return None, refname[1:-1], None
 
-  parts = string.split(refname, '.')
+  parts = refname.split('.')
   start = parts[0]
   rest = parts[1:]
 
@@ -632,12 +630,12 @@ def _prepare_ref(refname, for_names, file_args):
         ### the 'argNNN' names
         if not rest:
           return start, start, [ ]
-        refname = start + '.' + string.join(rest, '.')
+        refname = start + '.' + '.'.join(rest)
 
   if for_names:
     # From last to first part, check if this reference is part of a for loop
     for i in range(len(parts), 0, -1):
-      name = string.join(parts[:i], '.')
+      name = '.'.join(parts[:i])
       if name in for_names:
         return refname, name, parts[i:]
 

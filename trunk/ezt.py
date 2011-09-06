@@ -1,197 +1,10 @@
 #!/usr/bin/env python
-"""ezt.py -- easy templating
+"""ezt.py -- EaZy Templating
 
-ezt templates are simply text files in whatever format you so desire
-(such as XML, HTML, etc.) which contain directives sprinkled
-throughout.  With these directives it is possible to generate the
-dynamic content from the ezt templates.
-
-These directives are enclosed in square brackets.  If you are a
-C-programmer, you might be familar with the #ifdef directives of the C
-preprocessor 'cpp'.  ezt provides a similar concept.  Additionally EZT
-has a 'for' directive, which allows it to iterate (repeat) certain
-subsections of the template according to sequence of data items
-provided by the application.
-
-The final rendering is performed by the method generate() of the Template
-class.  Building template instances can either be done using external
-EZT files (convention: use the suffix .ezt for such files):
-
-    >>> template = Template("../templates/log.ezt")
-
-or by calling the parse() method of a template instance directly with
-a EZT template string:
-
-    >>> template = Template()
-    >>> template.parse('''<html><head>
-    ... <title>[title_string]</title></head>
-    ... <body><h1>[title_string]</h1>
-    ...    [for a_sequence] <p>[a_sequence]</p>
-    ...    [end] <hr>
-    ...    The [person] is [if-any state]in[else]out[end].
-    ... </body>
-    ... </html>
-    ... ''')
-
-The application should build a dictionary 'data' and pass it together
-with the output fileobject to the templates generate method:
-
-    >>> data = {'title_string' : "A Dummy Page",
-    ...         'a_sequence' : ['list item 1', 'list item 2', 'another element'],
-    ...         'person': "doctor",
-    ...         'state' : None }
-    >>> import sys
-    >>> template.generate(sys.stdout, data)
-    <html><head>
-    <title>A Dummy Page</title></head>
-    <body><h1>A Dummy Page</h1>
-     <p>list item 1</p>
-     <p>list item 2</p>
-     <p>another element</p>
-     <hr>
-    The doctor is out.
-    </body>
-    </html>
-
-Template syntax error reporting should be improved.  Currently it is
-very sparse (template line numbers would be nice):
-
-    >>> Template().parse("[if-any where] foo [else] bar [end unexpected args]")
-    Traceback (innermost last):
-      File "<stdin>", line 1, in ?
-      File "ezt.py", line 220, in parse
-        self.program = self._parse(text)
-      File "ezt.py", line 275, in _parse
-        raise ArgCountSyntaxError(str(args[1:]))
-    ArgCountSyntaxError: ['unexpected', 'args']
-    >>> Template().parse("[if unmatched_end]foo[end]")
-    Traceback (innermost last):
-      File "<stdin>", line 1, in ?
-      File "ezt.py", line 206, in parse
-        self.program = self._parse(text)
-      File "ezt.py", line 266, in _parse
-        raise UnmatchedEndError()
-    UnmatchedEndError
-
-
-Directives
-==========
-
- Several directives allow the use of dotted qualified names refering to objects
- or attributes of objects contained in the data dictionary given to the
- .generate() method.
-
- Qualified names
- ---------------
-
-   Qualified names have two basic forms: a variable reference, or a string
-   constant. References are a name from the data dictionary with optional
-   dotted attributes (where each intermediary is an object with attributes,
-   of course).
-
-   Examples:
-
-     [varname]
-
-     [ob.attr]
-
-     ["string"]
-
- Simple directives
- -----------------
-
-   [QUAL_NAME]
-
-   This directive is simply replaced by the value of the qualified name.
-   Numbers are converted to a string, and None becomes an empty string.
-
-   [QUAL_NAME QUAL_NAME ...]
-
-   The first value defines a substitution format, specifying constant
-   text and indices of the additional arguments. The arguments are then
-   substituted and the resulting is inserted into the output stream.
-
-   Example:
-     ["abc %0 def %1 ghi %0" foo bar.baz]
-
-   Note that the first value can be any type of qualified name -- a string
-   constant or a variable reference. Use %% to substitute a percent sign.
-   Argument indices are 0-based.
-
-   [include "filename"]  or [include QUAL_NAME]
-
-   This directive is replaced by content of the named include file. Note
-   that a string constant is more efficient -- the target file is compiled
-   inline. In the variable form, the target file is compiled and executed
-   at runtime.
-
-   [insertfile "filename"] or [insertfile QUAL_NAME]
-
-   This directive is replace by content from the named file, but as a
-   literal string: directives in the target file are not expanded.  As
-   in the case of the "include" directive, using a string constant for
-   the filename is more efficient than the variable form.
-
- Block directives
- ----------------
-
-   [for QUAL_NAME] ... [end]
-
-   The text within the [for ...] directive and the corresponding [end]
-   is repeated for each element in the sequence referred to by the
-   qualified name in the for directive.  Within the for block this
-   identifiers now refers to the actual item indexed by this loop
-   iteration.
-
-   [if-any QUAL_NAME [QUAL_NAME2 ...]] ... [else] ... [end]
-
-   Test if any QUAL_NAME value is not None or an empty string or list.
-   The [else] clause is optional.  CAUTION: Numeric values are
-   converted to string, so if QUAL_NAME refers to a numeric value 0,
-   the then-clause is substituted!
-
-   [if-index INDEX_FROM_FOR odd] ... [else] ... [end]
-   [if-index INDEX_FROM_FOR even] ... [else] ... [end]
-   [if-index INDEX_FROM_FOR first] ... [else] ... [end]
-   [if-index INDEX_FROM_FOR last] ... [else] ... [end]
-   [if-index INDEX_FROM_FOR NUMBER] ... [else] ... [end]
-
-   These five directives work similar to [if-any], but are only useful
-   within a [for ...]-block (see above).  The odd/even directives are
-   for example useful to choose different background colors for
-   adjacent rows in a table.  Similar the first/last directives might
-   be used to remove certain parts (for example "Diff to previous"
-   doesn't make sense, if there is no previous).
-
-   [is QUAL_NAME STRING] ... [else] ... [end]
-   [is QUAL_NAME QUAL_NAME] ... [else] ... [end]
-
-   The [is ...] directive is similar to the other conditional
-   directives above.  But it allows to compare two value references or
-   a value reference with some constant string.
-
-   [define VARIABLE] ... [end]
-
-   The [define ...] directive allows you to create and modify template
-   variables from within the template itself.  Essentially, any data
-   between inside the [define ...] and its matching [end] will be
-   expanded using the other template parsing and output generation
-   rules, and then stored as a string value assigned to the variable
-   VARIABLE.  The new (or changed) variable is then available for use
-   with other mechanisms such as [is ...] or [if-any ...], as long as
-   they appear later in the template.
-
-   [format "html|xml|js|url|raw"] ... [end]
-
-   The [format ...] directive creates a block in which any substitutions
-   are processed as though the template has been instantiated with the
-   the corresponding 'base_format' argument. Comma-separated format
-   specifiers perform nested encodings. In this case the encodings are
-   applied left-to-right.  For example the directive: [format "html,js"]
-   will HTML and then Javascript encode any inserted template variables.
+For documentation, please see: http://code.google.com/p/ezt/wiki/Syntax
 """
 #
-# Copyright (C) 2001-2009 Greg Stein. All Rights Reserved.
+# Copyright (C) 2001-2011 Greg Stein. All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -220,6 +33,10 @@ Directives
 # This software is maintained by Greg and is available at:
 #    http://code.google.com/p/ezt/
 #
+
+__author__ = 'Greg Stein'
+__version__ = '1.0'
+__license__ = 'BSD'
 
 import re
 from types import StringType, IntType, FloatType, LongType

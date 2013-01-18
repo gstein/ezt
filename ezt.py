@@ -39,14 +39,10 @@ __version__ = '1.0'
 __license__ = 'BSD'
 
 import re
-from types import StringType, IntType, FloatType, LongType
+from types import IntType, FloatType, LongType
 import os
 import urllib
-try:
-  import cStringIO
-except ImportError:
-  import StringIO
-  cStringIO = StringIO
+import StringIO
 
 #
 # Formatting types
@@ -298,7 +294,7 @@ class Template:
     to the file object 'fp' and functions are called.
     """
     for step in program:
-      if isinstance(step, StringType):
+      if isinstance(step, basestring):
         fp.write(step)
       else:
         method, method_args, filename, line_number = step
@@ -396,7 +392,7 @@ class Template:
     ((valref,), unused, section) = args
     list = _get_value(valref, ctx, filename, line_number)
     refname = valref[0]
-    if isinstance(list, StringType):
+    if isinstance(list, basestring):
       raise NeedSequenceError(refname, filename, line_number)
     ctx.for_index[refname] = idx = [ list, 0 ]
     for item in list:
@@ -406,7 +402,7 @@ class Template:
 
   def _cmd_define(self, args, fp, ctx, filename, line_number):
     ((name,), unused, section) = args
-    valfp = cStringIO.StringIO()
+    valfp = StringIO.StringIO()
     if section is not None:
       self._execute(section, valfp, ctx)
     ctx.defines[name] = valfp.getvalue()

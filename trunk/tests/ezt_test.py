@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright 2006 Google Inc. All Rights Reserved.
 
@@ -6,7 +7,7 @@
 
 import sys
 import unittest
-import cStringIO
+import StringIO
 
 sys.path.insert(0, '..')
 import ezt
@@ -16,13 +17,13 @@ class EztUnitTest(unittest.TestCase):
   def _runTemplate(self, template, data, fmt=ezt.FORMAT_RAW):
     t = ezt.Template()
     t.parse(template, base_format=fmt)
-    o = cStringIO.StringIO()
+    o = StringIO.StringIO()
     t.generate(o, data)
     return o.getvalue()
 
   def _runTemplateFile(self, path, data):
     t = ezt.Template('ezt_test_data/' + path)
-    o = cStringIO.StringIO()
+    o = StringIO.StringIO()
     t.generate(o, data)
     return o.getvalue()
 
@@ -30,9 +31,44 @@ class EztUnitTest(unittest.TestCase):
     d = self._runTemplate('this is a [X].', {'X': 'test'})
     self.assertEquals('this is a test.', d)
 
+  def testSimpleReplacementUtf8Encoded(self):
+    # If all inputs are byte strings encoded with an encoding that is a superset
+    # of ASCII (e.g. UTF-8), the output will be a byte string with the same
+    # encoding. This mode of operation may not be supported in future ezt
+    # versions running on Python 3.
+    t = u'◄ [X] ►'.encode('utf-8')
+    d = self._runTemplate(t, {'X': u'♥'.encode('utf-8')})
+    self.assertEquals(u'◄ ♥ ►'.encode('utf-8'), d)
+
+  def testSimpleReplacementUnicode(self):
+    d = self._runTemplate(u'◄ [X] ►', {'X': u'♥'})
+    self.assertEquals(u'◄ ♥ ►', d)
+
+  def testSimpleReplacementStrTemplateAndUnicodeVariable(self):
+    # Mixing str and unicode objects is allowed as long as the str objects only
+    # contain ASCII characters (i.e. ord(c) < 128). When ezt is converted to
+    # Python 3 this test will become redundant and can be deleted (it will be
+    # equivalent to testSimpleReplacementUnicode).
+    d = self._runTemplate('I [verb] Python', {'verb': u'♥'})
+    self.assertEquals(u'I ♥ Python', d)
+
+  def testSimpleReplacementUnicodeTemplateAndStrVariable(self):
+    # Just like testSimpleReplacementStrTemplateAndUnicodeVariable above, this
+    # test can be safely deleted after the switch to Python 3.
+    d = self._runTemplate(u'I ♥ [language]', {'language': 'Python'})
+    self.assertEquals(u'I ♥ Python', d)
+
   def testLiteral(self):
     d = self._runTemplate('this is a ["trivial test"].', {})
     self.assertEquals('this is a trivial test.', d)
+
+  def testLiteralUtf8Encoded(self):
+    d = self._runTemplate(u'◄ ["♥"] ►'.encode('utf-8'), {})
+    self.assertEquals(u'◄ ♥ ►'.encode('utf-8'), d)
+
+  def testLiteralUnicode(self):
+    d = self._runTemplate(u'◄ ["♥"] ►', {})
+    self.assertEquals(u'◄ ♥ ►', d)
 
   def testAttributes(self):
     class _BlahBlah:
@@ -142,6 +178,10 @@ class EztUnitTest(unittest.TestCase):
     d = self._runTemplate('[define RED]blue[end]RED = [RED]', {})
     self.assertEquals('RED = blue', d)
 
+  def testDefineUnicode(self):
+    d = self._runTemplate(u'[define HEART]♥[end]HEART = [HEART]', {})
+    self.assertEquals(u'HEART = ♥', d)
+
   def testExceptionOnMissingVar(self):
     try:
       self._runTemplate('\n\n[GREEN]\n[RED]\n', {'GREEN': 'green'})
@@ -180,6 +220,11 @@ class EztUnitTest(unittest.TestCase):
     d = self._runTemplate('[format "html"]["%0" A][end]',
         {'A': '<b>hello</b>'})
     self.assertEquals('&lt;b&gt;hello&lt;/b&gt;', d)
+
+  def testFormattedSubstUnicode(self):
+    d = self._runTemplate(u'◄[format "html"]["%0" A][end]►',
+        {'A': u'<b>♥</b>'})
+    self.assertEquals(u'◄&lt;b&gt;♥&lt;/b&gt;►', d)
 
   def testFormattedSubstVarFmt(self):
     d = self._runTemplate('[format "html"][FMT A][end]',

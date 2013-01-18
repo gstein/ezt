@@ -62,7 +62,7 @@ with the output fileobject to the templates generate method:
 }}}
 
 Template syntax error reporting should be improved.  Currently it is 
-very sparse (template line numbers would be nice):
+very sparse:
 
 {{{
 >>> Template().parse("[if-any where] foo [else] bar [end unexpected args]")
@@ -80,7 +80,7 @@ Traceback (innermost last):
     self.program = self._parse(text)
   File "ezt.py", line 266, in _parse
     raise UnmatchedEndError()
-UnmatchedEndError
+UnmatchedEndError: in file (text) at line 1
 }}}
 
 ==Directives==
@@ -139,6 +139,10 @@ Examples:
    literal string: directives in the target file are not expanded.  As
    in the case of the "include" directive, using a string constant for
    the filename is more efficient than the variable form.
+
+`[[]`
+
+   Inserts a literal open bracket into the output. No escaping is necessary for a close bracket.
 
 ===Block directives===
 

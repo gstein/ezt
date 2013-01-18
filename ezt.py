@@ -58,23 +58,31 @@ FORMAT_JS = 'js'
 FORMAT_URL = 'url'
 
 #
-# This regular expression matches three alternatives:
+# This regular expression matches four alternatives:
 #   expr: NEWLINE | DIRECTIVE | BRACKET | COMMENT
-#   DIRECTIVE: '[' ITEM (whitespace ITEM)* ']
+#   DIRECTIVE: '[' ITEM (whitespace ARG)* ']
 #   ITEM: STRING | NAME
+#   ARG: STRING | NAME | NUMBER
 #   STRING: '"' (not-slash-or-dquote | '\' anychar)* '"'
-#   NAME: (alphanum | '_' | '-' | '.')+
+#   NAME: (alpha | '_') (alphanum | '_' | '-' | '.')*
+#   NUMBER: digit+
 #   BRACKET: '[[]'
 #   COMMENT: '[#' not-rbracket* ']'
+#
+# Note: the above BNR is a bit loose around ITEM/ARG/NAME/NUMBER. The
+#       important point is that the first value in a directive must
+#       start with '_' or an alpha character (no digits). This greatly
+#       helps to avoid simple errors like '[0]' in templates.
 #
 # When used with the split() method, the return value will be composed of
 # non-matching text and the three paren groups (NEWLINE, DIRECTIVE and
 # BRACKET). Since the COMMENT matches are not placed into a group, they are
 # considered a "splitting" value and simply dropped.
 #
-_item = r'(?:"(?:[^\\"]|\\.)*"|[-\w.]+)'
+_item = r'(?:"(?:[^\\"]|\\.)*"|[A-Za-z_][-\w.]*)'
+_arg = r'(?:"(?:[^\\"]|\\.)*"|[-\w.]+)'
 _re_parse = re.compile(r'(\r?\n)|\[(%s(?: +%s)*)\]|(\[\[\])|\[#[^\]]*\]' %
-                       (_item, _item))
+                       (_item, _arg))
 
 _re_args = re.compile(r'"(?:[^\\"]|\\.)*"|[-\w.]+')
 

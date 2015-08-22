@@ -1,0 +1,18 @@
+Basic changes:
+  * update the header and stuff for current contact info
+  * note the (new) official location,
+  * to move all the docco from the docstring to the wiki
+
+In the [ViewVC](http://www.viewvc.org/) repository, there are a number of local changes:
+  * allow iterables instead of (just) sequences
+  * integrating the callback stuff is gonna be tricky because gstein wants to ponder them
+    * the `[CALLBACK ARG1 ARG2]` form is a generic function-callback mechanism that kind of goes against EZT's ideals
+  * a slew of [patches](http://viewvc.tigris.org/issues/buglist.cgi?component=viewvc&issue_status=UNCONFIRMED&issue_status=NEW&issue_status=STARTED&issue_status=REOPENED&subcomponent=ezt) living in the ViewVC issue tracker, too.
+
+
+## Larger Questions ##
+
+Visitors: please feel free to provide your thoughts in comments on this wiki page. Thanks!
+
+  * Start a release process?
+  * Start a community? (e.g. add a Google group?)

@@ -1,3 +1,5 @@
+### this was exported from Google Code on August 22, 2015. Need to update this file...
+
 Some quick notes:
 
   Primary contact: gstein@gmail.com

@@ -1,4 +1,5 @@
 ### this was exported from Google Code on August 22, 2015. Need to update this file...
+### also see: https://github.com/gstein/ezt/blob/wiki/ProjectHome.md
 
 Some quick notes:
 
@@ -31,3 +32,8 @@ The EZT project was started in October 2003 to pull together all of
 the various incarnations and derivative developments of EZT into a
 single, canonical location. This project was moved to Google Code in
 June 2008, where it now resides.
+
+
+DOCUMENTATION
+
+See: https://github.com/gstein/ezt/blob/wiki/Syntax.md

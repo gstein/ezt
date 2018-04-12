@@ -21,7 +21,7 @@ HISTORY
 EZT was started as part of the edna project (http://edna.sf.net/) in
 early 2001. However, it was also intended towards use within the
 ViewVC project (http://viewvc.tigris.org/). The bulk of EZT development
-occured as part of ViewVC during 2001 and 2002.
+occurred as part of ViewVC during 2001 and 2002.
 
 In 2003, EZT started to get used in additional places: SubWiki,
 Subversion's build system, and some infrastructure pieces at the ASF.

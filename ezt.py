@@ -39,10 +39,24 @@ __version__ = '1.0'
 __license__ = 'BSD'
 
 import re
-from types import IntType, FloatType, LongType
 import os
-import urllib
-import StringIO
+import sys
+
+if sys.version_info[0] >= 3:
+  # Python >=3.0
+  PY3 = True
+  long = int
+  unicode = str
+  from io import StringIO
+  from urllib.parse import quote_plus as urllib_parse_quote_plus
+else:
+  # Python <3.0
+  PY3 = False
+  from urllib import quote_plus as urllib_parse_quote_plus
+  try:
+    from cStringIO import StringIO
+  except ImportError:
+    from StringIO import StringIO
 
 #
 # Formatting types
@@ -126,7 +140,7 @@ class Template:
                                base_printer=_parse_format(base_format))
 
   def generate(self, fp, data):
-    if hasattr(data, '__getitem__') or callable(getattr(data, 'keys', None)):
+    if hasattr(data, '__getitem__') or hasattr(getattr(data, 'keys', None), '__call__'):
       # a dictionary-like object was passed. convert it to an
       # attribute-based object.
       class _data_ob:
@@ -294,13 +308,14 @@ class Template:
     to the file object 'fp' and functions are called.
     """
     for step in program:
-      if isinstance(step, basestring):
+      if isinstance(step, str):
         fp.write(step)
       else:
         method, method_args, filename, line_number = step
         method(method_args, fp, ctx, filename, line_number)
 
-  def _cmd_print(self, (transforms, valref), fp, ctx, filename, line_number):
+  def _cmd_print(self, transforms_valref, fp, ctx, filename, line_number):
+    (transforms, valref) = transforms_valref
     value = _get_value(valref, ctx, filename, line_number)
     # if the value has a 'read' attribute, then it is a stream: copy it
     if hasattr(value, 'read'):
@@ -316,8 +331,9 @@ class Template:
         value = t(value)
       fp.write(value)
 
-  def _cmd_subst(self, (transforms, valref, args), fp, ctx, filename,
+  def _cmd_subst(self, transforms_valref_args, fp, ctx, filename,
                  line_number):
+    (transforms, valref, args) = transforms_valref_args
     fmt = _get_value(valref, ctx, filename, line_number)
     parts = _re_subst.split(fmt)
     for i in range(len(parts)):
@@ -332,16 +348,18 @@ class Template:
         piece = t(piece)
       fp.write(piece)
 
-  def _cmd_include(self, (valref, reader, printer), fp, ctx, filename,
+  def _cmd_include(self, valref_reader_printer, fp, ctx, filename,
                    line_number):
+    (valref, reader, printer) = valref_reader_printer
     fname = _get_value(valref, ctx, filename, line_number)
     ### note: we don't have the set of for_names to pass into this parse.
     ### I don't think there is anything to do but document it
     self._execute(self._parse(reader.read_other(fname), base_printer=printer),
                   fp, ctx)
 
-  def _cmd_insertfile(self, (valref, reader, printer), fp, ctx, filename,
+  def _cmd_insertfile(self, valref_reader_printer, fp, ctx, filename,
                       line_number):
+    (valref, reader, printer) = valref_reader_printer
     fname = _get_value(valref, ctx, filename, line_number)
     fp.write(reader.read_other(fname).text)
 
@@ -392,7 +410,7 @@ class Template:
     ((valref,), unused, section) = args
     list = _get_value(valref, ctx, filename, line_number)
     refname = valref[0]
-    if isinstance(list, basestring):
+    if isinstance(list, str):
       raise NeedSequenceError(refname, filename, line_number)
     ctx.for_index[refname] = idx = [ list, 0 ]
     for item in list:
@@ -402,7 +420,7 @@ class Template:
 
   def _cmd_define(self, args, fp, ctx, filename, line_number):
     ((name,), unused, section) = args
-    valfp = StringIO.StringIO()
+    valfp = StringIO()
     if section is not None:
       self._execute(section, valfp, ctx)
     ctx.defines[name] = valfp.getvalue()
@@ -462,23 +480,24 @@ def _prepare_ref(refname, for_names, file_args):
 
   return refname, start, rest
 
-def _get_value((refname, start, rest), ctx, filename, line_number):
-  """(refname, start, rest) -> a prepared `value reference' (see above).
+def _get_value(refname_start_rest, ctx, filename, line_number):
+  """refname_start_rest -> a prepared `value reference' (see above).
   ctx -> an execution context instance.
 
   Does a name space lookup within the template name space.  Active
   for blocks take precedence over data dictionary members with the
   same name.
   """
+  (refname, start, rest) = refname_start_rest
   if rest is None:
     # it was a string constant
     return start
 
   # get the starting object
-  if ctx.for_index.has_key(start):
+  if start in ctx.for_index:
     list, idx = ctx.for_index[start]
     ob = list[idx]
-  elif ctx.defines.has_key(start):
+  elif start in ctx.defines:
     ob = ctx.defines[start]
   elif hasattr(ctx.data, start):
     ob = getattr(ctx.data, start)
@@ -493,7 +512,7 @@ def _get_value((refname, start, rest), ctx, filename, line_number):
       raise UnknownReference(refname, filename, line_number)
 
   # make sure we return a string instead of some various Python types
-  if isinstance(ob, (IntType, FloatType, LongType)):
+  if isinstance(ob, (int, long, float)):
     return str(ob)
   if ob is None:
     return ''
@@ -513,9 +532,14 @@ REPLACE_JS_MAP = (
 )
 
 # Various unicode whitespace
-REPLACE_JS_UNICODE_MAP = (
-  (u'\u0085', r'\u0085'), (u'\u2028', r'\u2028'), (u'\u2029', r'\u2029'),
-)
+if PY3:
+  # Python >=3.0
+  REPLACE_JS_UNICODE_MAP = (
+    ('\u0085', r'\u0085'), ('\u2028', r'\u2028'), ('\u2029', r'\u2029')
+  )
+else:
+  # Python <3.0
+  REPLACE_JS_UNICODE_MAP = eval("((u'\u0085', r'\u0085'), (u'\u2028', r'\u2028'), (u'\u2029', r'\u2029'))")
 
 # Why not cgi.escape? It doesn't do single quotes which are occasionally
 # used to contain HTML attributes and event handler definitions (unfortunately)
@@ -540,7 +564,7 @@ def _url_escape(s):
   ### UTF-8 encoded first.
   if isinstance(s, unicode):
     s = s.encode('utf8')
-  return urllib.quote_plus(s)
+  return urllib_parse_quote_plus(s)
 
 FORMATTERS = {
   FORMAT_RAW: None,
@@ -573,7 +597,7 @@ class Reader:
 class _FileReader(Reader):
   """Reads templates from the filesystem."""
   def __init__(self, fname):
-    self.text = open(fname, 'rb').read()
+    self.text = open(fname, 'r').read()
     self._dir = os.path.dirname(fname)
     self.fname = fname
   def read_other(self, relative):

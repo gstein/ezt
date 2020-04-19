@@ -46,15 +46,23 @@ if sys.version_info[0] >= 3:
   # Python >=3.0
   PY3 = True
   long = int
+  basestring = str
   unicode = str
+  unichr = chr
+  # Avoid newline translation, returning a string (not bytes).
+  def readtext(fname):
+    with open(fname, 'rt', newline='') as f:
+      return f.read()
   from io import StringIO
   from urllib.parse import quote_plus as urllib_parse_quote_plus
 else:
   # Python <3.0
   PY3 = False
+  # Use binary mode to avoid newline translation.
+  readtext = lambda fname: open(fname, 'rb').read()
   from urllib import quote_plus as urllib_parse_quote_plus
   try:
-    from cStringIO import StringIO
+    from xxcStringIO import StringIO
   except ImportError:
     from StringIO import StringIO
 
@@ -308,8 +316,14 @@ class Template:
     to the file object 'fp' and functions are called.
     """
     for step in program:
-      if isinstance(step, str):
+      if isinstance(step, basestring):
         fp.write(step)
+      elif isinstance(step, bytes):
+        # Note: in Python 2.7, basestring will capture <bytes>, so this
+        # branch will never be taken. This is just for Python 3.x.
+        ### assume utf-8. maybe throw an error. maybe add an encoding
+        ### name to the Template.
+        fp.write(step.decode('utf-8'))
       else:
         method, method_args, filename, line_number = step
         method(method_args, fp, ctx, filename, line_number)
@@ -329,6 +343,9 @@ class Template:
     else:
       for t in transforms:
         value = t(value)
+      if PY3 and isinstance(value, bytes):
+        ### see comments about encoding, in _execute()
+        value = value.decode('utf-8')
       fp.write(value)
 
   def _cmd_subst(self, transforms_valref_args, fp, ctx, filename,
@@ -410,7 +427,7 @@ class Template:
     ((valref,), unused, section) = args
     list = _get_value(valref, ctx, filename, line_number)
     refname = valref[0]
-    if isinstance(list, str):
+    if isinstance(list, basestring):
       raise NeedSequenceError(refname, filename, line_number)
     ctx.for_index[refname] = idx = [ list, 0 ]
     for item in list:
@@ -532,14 +549,9 @@ REPLACE_JS_MAP = (
 )
 
 # Various unicode whitespace
-if PY3:
-  # Python >=3.0
-  REPLACE_JS_UNICODE_MAP = (
-    ('\u0085', r'\u0085'), ('\u2028', r'\u2028'), ('\u2029', r'\u2029')
-  )
-else:
-  # Python <3.0
-  REPLACE_JS_UNICODE_MAP = eval("((u'\u0085', r'\u0085'), (u'\u2028', r'\u2028'), (u'\u2029', r'\u2029'))")
+REPLACE_JS_UNICODE_MAP = (
+  (unichr(0x0085), r'\u0085'), (unichr(0x2028), r'\u2028'), (unichr(0x2029), r'\u2029')
+)
 
 # Why not cgi.escape? It doesn't do single quotes which are occasionally
 # used to contain HTML attributes and event handler definitions (unfortunately)
@@ -597,7 +609,7 @@ class Reader:
 class _FileReader(Reader):
   """Reads templates from the filesystem."""
   def __init__(self, fname):
-    self.text = open(fname, 'r').read()
+    self.text = readtext(fname)
     self._dir = os.path.dirname(fname)
     self.fname = fname
   def read_other(self, relative):

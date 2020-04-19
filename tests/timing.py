@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import string
 import time
 
 
@@ -23,7 +22,7 @@ def timing(parts, for_names):
 
   f2 = [ ]
   for f in for_names:
-    f2.append((len(f), f, string.count(f, '.')+1))
+    f2.append((len(f), f, f.count('.')+1))
   f2.sort()
   f2.reverse()
 
@@ -31,14 +30,14 @@ def timing(parts, for_names):
 
   ### res3 is borken. ignore it.
   if res1 != res2 or res1 != res4:
-    print res1, res2, res3, res4
+    print(res1, res2, res3, res4)
     return
 
-  print '%s %0.4f %0.4f %0.4f %0.4f %0.4f' % (res1, b, t1-b, t2-b, t3-b, t4-b)
+  print('%s %0.4f %0.4f %0.4f %0.4f %0.4f' % (res1, b, t1-b, t2-b, t3-b, t4-b))
 
 def time_it(func, parts, for_names):
   t = time.time()
-  for i in xrange(10000):
+  for i in range(10000):
     res = func(parts[:], for_names)
   return time.time() - t, res
 
@@ -48,7 +47,7 @@ def baseline(parts, for_names):
 def alg1(parts, for_names):
   rest = []
   while parts:
-    start = string.join(parts, '.')
+    start = '.'.join(parts)
     if start in for_names:
       return start, rest
 
@@ -59,17 +58,17 @@ def alg1(parts, for_names):
 
 def alg2(parts, for_names):
   for i in range(len(parts), 0, -1):
-    start = string.join(parts[:i], '.')
+    start = '.'.join(parts[:i])
     if start in for_names:
       return start, parts[i:]
   return parts[0], parts[1:]
 
 def alg3(parts, for_names):
-  all = string.join(parts, '.')
+  all = '.'.join(parts)
   for f in for_names:
     l = len(f)
     if all[:l] == f:
-      return f, string.split(all[l+1:], '.')
+      return f, all[l+1:].split('.')
   return parts[0], parts[1:]
 
 def alg4(parts, for_names):
@@ -77,7 +76,7 @@ def alg4(parts, for_names):
 #  import sys
 #  sys.exit(0)
   if for_names:
-    all = string.join(parts, '.')
+    all = '.'.join(parts)
     for l, f, s in for_names:
       if all[:l] == f:
         return f, parts[s:]

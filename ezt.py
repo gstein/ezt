@@ -35,7 +35,7 @@ For documentation, please see: http://code.google.com/p/ezt/wiki/Syntax
 #
 
 __author__ = 'Greg Stein'
-__version__ = '1.0'
+__version__ = '1.1'
 __license__ = 'BSD'
 
 import re

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """ezt.py -- EaZy Templating
 
-For documentation, please see: http://code.google.com/p/ezt/wiki/Syntax
+For documentation, please see: https://github.com/gstein/ezt/blob/wiki/Syntax.md
 """
 #
 # Copyright (C) 2001-2011 Greg Stein. All Rights Reserved.

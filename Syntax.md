@@ -198,3 +198,10 @@ Examples:
 > specifiers perform nested encodings. In this case the encodings are
 > applied left-to-right.  For example the directive: `[format "html,js"]`
 > will HTML and then Javascript encode any inserted template variables.
+
+`[# comment]`
+
+`[# this is a comment`<br />
+`which can also`<br />
+`span multiple`<br />
+`lines]`

@@ -31,7 +31,7 @@ For documentation, please see: https://github.com/gstein/ezt/blob/wiki/Syntax.md
 #
 #
 # This software is maintained by Greg and is available at:
-#    http://code.google.com/p/ezt/
+#    https://github.com/gstein/ezt
 #
 
 __author__ = 'Greg Stein'

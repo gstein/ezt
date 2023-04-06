@@ -118,7 +118,7 @@ _re_whitespace = re.compile(r'\s\s+')
 # replace the relevant pieces, and then put it all back together. splitting
 # will produce a list of: TEXT ( splitter TEXT )*. splitter will be '%' or
 # an integer.
-_re_subst = re.compile('%(%|[0-9]+)')
+_re_subst = re.compile(r'%(%|\d+)')
 
 class Template:
 
@@ -237,7 +237,7 @@ class Template:
           if cmd == 'format':
             printers.pop()
           else:
-            func = getattr(self, '_cmd_' + re.sub('-', '_', cmd))
+            func = getattr(self, '_cmd_' + cmd.replace('-', '_'))
             program[idx:] = [ (func, (args, true_section, else_section),
                                filename, line_number) ]
             if cmd == 'for':
@@ -390,9 +390,9 @@ class Template:
         break
     self._do_if(value, t_section, f_section, fp, ctx)
 
-  def _cmd_if_index(self, args, fp, ctx, filename, line_number):
+  def _cmd_if_index(self, args, fp, ctx, _filename, _line_number):
     ((valref, value), t_section, f_section) = args
-    list, idx = ctx.for_index[valref[0]]
+    items, idx = ctx.for_index[valref[0]]
     if value == 'even':
       value = idx % 2 == 0
     elif value == 'odd':
@@ -400,7 +400,7 @@ class Template:
     elif value == 'first':
       value = idx == 0
     elif value == 'last':
-      value = idx == len(list)-1
+      value = idx == len(items)-1
     else:
       value = idx == int(value)
     self._do_if(value, t_section, f_section, fp, ctx)
@@ -425,17 +425,17 @@ class Template:
 
   def _cmd_for(self, args, fp, ctx, filename, line_number):
     ((valref,), unused, section) = args
-    list = _get_value(valref, ctx, filename, line_number)
+    items = _get_value(valref, ctx, filename, line_number)
     refname = valref[0]
-    if isinstance(list, basestring):
+    if isinstance(items, basestring):
       raise NeedSequenceError(refname, filename, line_number)
-    ctx.for_index[refname] = idx = [ list, 0 ]
-    for item in list:
+    ctx.for_index[refname] = idx = [ items, 0 ]
+    for _item in items:
       self._execute(section, fp, ctx)
       idx[1] = idx[1] + 1
     del ctx.for_index[refname]
 
-  def _cmd_define(self, args, fp, ctx, filename, line_number):
+  def _cmd_define(self, args, _fp, ctx, _filename, _line_number):
     ((name,), unused, section) = args
     valfp = StringIO()
     if section is not None:
@@ -512,8 +512,8 @@ def _get_value(refname_start_rest, ctx, filename, line_number):
 
   # get the starting object
   if start in ctx.for_index:
-    list, idx = ctx.for_index[start]
-    ob = list[idx]
+    items, idx = ctx.for_index[start]
+    ob = items[idx]
   elif start in ctx.defines:
     ob = ctx.defines[start]
   elif hasattr(ctx.data, start):

@@ -286,11 +286,11 @@ class Template:
             program.append((cmd,
                             (_prepare_ref(args[1], for_names, file_args),
                              reader, printers[-1]), filename, line_number))
-        elif cmd == 'if-any':
+        elif cmd == 'if-any' or cmd == 'if-defined':
           f_args = [ ]
           for arg in args[1:]:
             f_args.append(_prepare_ref(arg, for_names, file_args))
-          stack.append(['if-any', len(program), f_args, None, line_number])
+          stack.append([cmd, len(program), f_args, None, line_number])
         else:
           # implied PRINT command
           if len(args) > 1:
@@ -388,6 +388,18 @@ class Template:
       if _get_value(valref, ctx, filename, line_number):
         value = 1
         break
+    self._do_if(value, t_section, f_section, fp, ctx)
+
+  def _cmd_if_defined(self, args, fp, ctx, filename, line_number):
+    "If all values are defined, then T else F."
+    (valrefs, t_section, f_section) = args
+    value = 0
+    try:
+      for valref in valrefs:
+        if _get_value(valref, ctx, filename, line_number):
+          value = 1
+    except UnknownReference as e:
+      value = 0
     self._do_if(value, t_section, f_section, fp, ctx)
 
   def _cmd_if_index(self, args, fp, ctx, _filename, _line_number):
@@ -505,6 +517,7 @@ def _get_value(refname_start_rest, ctx, filename, line_number):
   for blocks take precedence over data dictionary members with the
   same name.
   """
+  # print('\nrsr',refname_start_rest,'\n',file=sys.stderr)
   (refname, start, rest) = refname_start_rest
   if rest is None:
     # it was a string constant

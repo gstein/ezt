@@ -261,7 +261,7 @@ class Template:
 
           # remember the cmd, current pos, args, and a section placeholder
           stack.append([cmd, len(program), args[1:], None, line_number])
-        elif cmd == 'include' or cmd == 'insertfile':
+        elif cmd in ('include', 'insertfile'):
           is_insertfile = (cmd == 'insertfile')
           # extra arguments are meaningless when using insertfile
           if is_insertfile and len(args) != 2:
@@ -286,7 +286,7 @@ class Template:
             program.append((cmd,
                             (_prepare_ref(args[1], for_names, file_args),
                              reader, printers[-1]), filename, line_number))
-        elif cmd == 'if-any' or cmd == 'if-defined':
+        elif cmd in ('if-any', 'if-defined'):
           f_args = [ ]
           for arg in args[1:]:
             f_args.append(_prepare_ref(arg, for_names, file_args))

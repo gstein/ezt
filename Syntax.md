@@ -203,3 +203,10 @@ Examples:
 > specifiers perform nested encodings. In this case the encodings are
 > applied left-to-right.  For example the directive: `[format "html,js"]`
 > will HTML and then Javascript encode any inserted template variables.
+
+`[# ... ]`
+
+> The `[# ... ]` directive is a comment block. Content is dropped, without
+> further processing, and does not appear in output.
+> Note that it allows multiple lines, but is terminated by the first `]`,
+> so cannot be used to disable EZT blocks.

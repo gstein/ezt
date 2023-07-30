@@ -230,9 +230,9 @@ class Template:
             raise ArgCountSyntaxError(str(args[1:]), filename, line_number)
           # note: true-section may be None
           try:
-            cmd, idx, args, true_section, start_line_number = stack.pop()
-          except IndexError:
-            raise UnmatchedEndError(None, filename, line_number)
+            cmd, idx, args, true_section, _start_line_number = stack.pop()
+          except IndexError as exc:
+            raise UnmatchedEndError(None, filename, line_number) from exc
           else_section = program[idx:]
           if cmd == 'format':
             printers.pop()
@@ -376,7 +376,7 @@ class Template:
 
   def _cmd_insertfile(self, valref_reader_printer, fp, ctx, filename,
                       line_number):
-    (valref, reader, printer) = valref_reader_printer
+    (valref, reader, _printer) = valref_reader_printer
     fname = _get_value(valref, ctx, filename, line_number)
     fp.write(reader.read_other(fname).text)
 
@@ -424,7 +424,7 @@ class Template:
       self._execute(section, fp, ctx)
 
   def _cmd_for(self, args, fp, ctx, filename, line_number):
-    ((valref,), unused, section) = args
+    ((valref,), _unused, section) = args
     items = _get_value(valref, ctx, filename, line_number)
     refname = valref[0]
     if isinstance(items, basestring):
@@ -436,7 +436,7 @@ class Template:
     del ctx.for_index[refname]
 
   def _cmd_define(self, args, _fp, ctx, _filename, _line_number):
-    ((name,), unused, section) = args
+    ((name,), _unused, section) = args
     valfp = StringIO()
     if section is not None:
       self._execute(section, valfp, ctx)
@@ -472,7 +472,7 @@ def _prepare_ref(refname, for_names, file_args):
       pass
     else:
       if idx < len(file_args):
-        orig_refname, start, more_rest = file_args[idx]
+        _orig_refname, start, more_rest = file_args[idx]
         if more_rest is None:
           # the include-argument was a string constant
           return None, start, None
@@ -525,8 +525,8 @@ def _get_value(refname_start_rest, ctx, filename, line_number):
   for attr in rest:
     try:
       ob = getattr(ob, attr)
-    except AttributeError:
-      raise UnknownReference(refname, filename, line_number)
+    except AttributeError as exc:
+      raise UnknownReference(refname, filename, line_number) from exc
 
   # make sure we return a string instead of some various Python types
   if isinstance(ob, (int, long, float)):
@@ -593,8 +593,8 @@ def _parse_format(format_string=FORMAT_RAW):
       format_func = FORMATTERS[fspec]
       if format_func is not None:
         format_funcs.append(format_func)
-  except KeyError:
-    raise UnknownFormatConstantError(format_string)
+  except KeyError as exc:
+    raise UnknownFormatConstantError(format_string) from exc
   return format_funcs
 
 class _context:
@@ -682,12 +682,10 @@ def test_parse():
   assert _re_parse.split(r'["a \"b[foo]" c.d f]') == \
          ['', '["a \\"b[foo]" c.d f]', None, '']
 
-def _test(argv):
-  import doctest, ezt
-  verbose = "-v" in argv
-  return doctest.testmod(ezt, verbose=verbose)
+def _test():
+  import doctest
+  return doctest.testmod()
 
 if __name__ == "__main__":
   # invoke unit test for this module:
-  import sys
-  sys.exit(_test(sys.argv)[0])
+  sys.exit(_test())

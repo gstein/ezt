@@ -398,7 +398,7 @@ class Template:
       for valref in valrefs:
         if _get_value(valref, ctx, filename, line_number):
           value = 1
-    except UnknownReference as e:
+    except UnknownReference:
       value = 0
     self._do_if(value, t_section, f_section, fp, ctx)
 

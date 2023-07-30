@@ -172,6 +172,11 @@ Examples:
 > be used to remove certain parts (for example "Diff to previous"
 > doesn't make sense, if there is no previous).
 
+`[if-defined QUAL_NAME [QUAL_NAME2 ...]] ... [else] ... [end]`
+
+> Test if all QUAL\_NAME values are defined.
+> The `[else]` clause is optional.
+
 `[is QUAL_NAME STRING] ... [else] ... [end]`<br />
 `[is QUAL_NAME QUAL_NAME] ... [else] ... [end]`
 
@@ -198,3 +203,10 @@ Examples:
 > specifiers perform nested encodings. In this case the encodings are
 > applied left-to-right.  For example the directive: `[format "html,js"]`
 > will HTML and then Javascript encode any inserted template variables.
+
+`[# ... ]`
+
+> The `[# ... ]` directive is a comment block. Content is dropped, without
+> further processing, and does not appear in output.
+> Note that it allows multiple lines, but is terminated by the first `]`,
+> so cannot be used to disable EZT blocks.

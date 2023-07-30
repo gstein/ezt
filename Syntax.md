@@ -172,6 +172,11 @@ Examples:
 > be used to remove certain parts (for example "Diff to previous"
 > doesn't make sense, if there is no previous).
 
+`[if-defined QUAL_NAME [QUAL_NAME2 ...]] ... [else] ... [end]`
+
+> Test if all QUAL\_NAME values are defined.
+> The `[else]` clause is optional.
+
 `[is QUAL_NAME STRING] ... [else] ... [end]`<br />
 `[is QUAL_NAME QUAL_NAME] ... [else] ... [end]`
 

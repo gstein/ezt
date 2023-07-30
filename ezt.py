@@ -97,10 +97,10 @@ FORMAT_URL = 'url'
 # BRACKET). Since the COMMENT matches are not placed into a group, they are
 # considered a "splitting" value and simply dropped.
 #
-_item = r'(?:"(?:[^\\"]|\\.)*"|[A-Za-z_][-\w.]*)'
-_arg = r'(?:"(?:[^\\"]|\\.)*"|[-\w.]+)'
-_re_parse = re.compile(r'(\r?\n)|\[(%s(?: +%s)*)\]|(\[\[\])|\[#[^\]]*\]' %
-                       (_item, _arg))
+_ITEM = r'(?:"(?:[^\\"]|\\.)*"|[A-Za-z_][-\w.]*)'
+_ARG = r'(?:"(?:[^\\"]|\\.)*"|[-\w.]+)'
+_RE_PARSE = re.compile(r'(\r?\n)|\[(%s(?: +%s)*)\]|(\[\[\])|\[#[^\]]*\]' %
+                       (_ITEM, _ARG))
 
 _re_args = re.compile(r'"(?:[^\\"]|\\.)*"|[-\w.]+')
 
@@ -169,12 +169,12 @@ class Template:
     It returns the parsed template as a 'program'.  This program is a sequence
     made out of strings or (function, argument) 2-tuples.
 
-    Note: comment directives [# ...] are automatically dropped by _re_parse.
+    Note: comment directives [# ...] are automatically dropped by _RE_PARSE.
     """
 
     filename = reader.filename()
     # parse the template program into: (TEXT NEWLINE DIRECTIVE BRACKET)* TEXT
-    parts = _re_parse.split(reader.text)
+    parts = _RE_PARSE.split(reader.text)
 
     program = [ ]
     stack = [ ]
@@ -670,16 +670,16 @@ class UnknownFormatConstantError(EZTException):
 
 # --- standard test environment ---
 def test_parse():
-  assert _re_parse.split('[a]') == ['', '[a]', None, '']
-  assert _re_parse.split('[a] [b]') == \
+  assert _RE_PARSE.split('[a]') == ['', '[a]', None, '']
+  assert _RE_PARSE.split('[a] [b]') == \
          ['', '[a]', None, ' ', '[b]', None, '']
-  assert _re_parse.split('[a c] [b]') == \
+  assert _RE_PARSE.split('[a c] [b]') == \
          ['', '[a c]', None, ' ', '[b]', None, '']
-  assert _re_parse.split('x [a] y [b] z') == \
+  assert _RE_PARSE.split('x [a] y [b] z') == \
          ['x ', '[a]', None, ' y ', '[b]', None, ' z']
-  assert _re_parse.split('[a "b" c "d"]') == \
+  assert _RE_PARSE.split('[a "b" c "d"]') == \
          ['', '[a "b" c "d"]', None, '']
-  assert _re_parse.split(r'["a \"b[foo]" c.d f]') == \
+  assert _RE_PARSE.split(r'["a \"b[foo]" c.d f]') == \
          ['', '["a \\"b[foo]" c.d f]', None, '']
 
 def _test():

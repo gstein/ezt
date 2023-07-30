@@ -517,7 +517,6 @@ def _get_value(refname_start_rest, ctx, filename, line_number):
   for blocks take precedence over data dictionary members with the
   same name.
   """
-  # print('\nrsr',refname_start_rest,'\n',file=sys.stderr)
   (refname, start, rest) = refname_start_rest
   if rest is None:
     # it was a string constant

@@ -111,6 +111,18 @@ class EztUnitTest(unittest.TestCase):
     d = self._runTemplate(t, {'O1': [], 'O2': None, 'O3': 0, 'O4': 'hi'})
     self.assertEqual('\n!O1\n!O2\nO3\nO4\n!O1O2\nO1O4\n', d)
 
+  def testIfDefined(self):
+    t = """
+[if-defined O1]O1[else]!O1[end]
+[if-defined O2]O2[else]!O2[end]
+[if-defined O3]O3[else]!O3[end]
+[if-defined O4]O4[else]!O4[end]
+[if-defined O1 O2 O3 O4]O1O2O3O4[else]!O1O2O3O4[end]
+[if-defined O3 O4]O3O4[else]!O3O4[end]
+"""
+    d = self._runTemplate(t, {'O3': 0, 'O4': 'hi'})
+    self.assertEqual('\n!O1\n!O2\nO3\nO4\n!O1O2O3O4\nO3O4\n', d)
+
   def testIfIndex(self):
     o = [1, 4, 9, 16, 25]
     t = """

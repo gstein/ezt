@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-"""ezt.py -- EaZy Templating
-
-For documentation, please see: https://github.com/gstein/ezt/blob/wiki/Syntax.md
-"""
 #
 # Copyright (C) 2001-2011 Greg Stein. All Rights Reserved.
 #
@@ -33,6 +29,11 @@ For documentation, please see: https://github.com/gstein/ezt/blob/wiki/Syntax.md
 # This software is maintained by Greg and is available at:
 #    https://github.com/gstein/ezt
 #
+
+"""ezt.py -- EaZy Templating
+
+For documentation, please see: https://github.com/gstein/ezt/SYNTAX.md
+"""
 
 __author__ = 'Greg Stein'
 __version__ = '1.1'
